@@ -1,0 +1,17 @@
+{
+  "name": "codex-history-viewer",
+  "version": "0.1.0",
+  "description": "Terminal viewer for codex-cli session history",
+  "type": "module",
+  "bin": {
+    "codex-history": "./bin/codex-history.mjs"
+  },
+  "scripts": {
+    "start": "node ./bin/codex-history.mjs",
+    "test": "node test/sessions.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
