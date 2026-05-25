@@ -3,7 +3,8 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { printSession } from "../lib/tui.mjs";
+import { ansi, findTextMatches, styledContentLines } from "../lib/format.mjs";
+import { HistoryTui, printSession } from "../lib/tui.mjs";
 import { filterSessions, loadSessions, parseSessionFile } from "../lib/sessions.mjs";
 
 const records = [
@@ -102,4 +103,85 @@ test("plain rendering can disable terminal color escapes", async () => {
   const session = await parseSessionFile(file);
   const output = printSession(session, { colors: false });
   assert.doesNotMatch(output, /\u001b\[/);
+});
+
+test("finds and highlights every match while marking the active one", () => {
+  assert.deepEqual(findTextMatches("Hit hit HIT", "hit"), [
+    { start: 0, end: 3 },
+    { start: 4, end: 7 },
+    { start: 8, end: 11 },
+  ]);
+  const [line] = styledContentLines("Hit hit HIT", 40, "hit", true, 4);
+  assert.equal(line.matches.length, 3);
+  assert.equal(line.text.split(ansi.search).length - 1, 2);
+  assert.equal(line.text.split(ansi.activeSearch).length - 1, 1);
+});
+
+function tuiSession({ entries, tools = [], searchText = "" }) {
+  return {
+    id: "test",
+    title: "test",
+    path: "/tmp/test",
+    cwd: "/tmp",
+    startedAt: "2026-05-25T10:00:00Z",
+    entries,
+    tools,
+    allEntries: [...entries, ...tools].sort((a, b) => a.index - b.index),
+    searchText: searchText || [...entries, ...tools].map((entry) => entry.text).join("\n").toLowerCase(),
+  };
+}
+
+test("n and N navigate cyclically inside the current session", () => {
+  const session = tuiSession({
+    entries: [{ role: "assistant", text: "hit and hit", index: 1 }],
+  });
+  const tui = new HistoryTui([session], { noColor: true });
+  tui.applySearch("hit");
+  tui.selectFirstMatch();
+  assert.equal(tui.activeMatchKey, "1:0");
+  tui.navigateMatch(1);
+  assert.equal(tui.activeMatchKey, "1:8");
+  tui.navigateMatch(1);
+  assert.equal(tui.activeMatchKey, "1:0");
+  tui.navigateMatch(-1);
+  assert.equal(tui.activeMatchKey, "1:8");
+});
+
+test("pasted search input is handled as individual terminal keys", () => {
+  const session = tuiSession({
+    entries: [{ role: "assistant", text: "find pasted needle", index: 1 }],
+  });
+  const tui = new HistoryTui([session], { noColor: true });
+  tui.render = () => {};
+  tui.handleInput("/needle\r");
+  assert.equal(tui.query, "needle");
+  assert.equal(tui.searching, false);
+  assert.equal(tui.activeMatchKey, "1:12");
+});
+
+test("navigating to a hidden tool result reveals tool activity", () => {
+  const session = tuiSession({
+    entries: [{ role: "user", text: "ordinary prompt", index: 1 }],
+    tools: [{ role: "result", text: "hidden needle result", index: 2 }],
+  });
+  const tui = new HistoryTui([session], { noColor: true });
+  tui.applySearch("needle");
+  tui.selectFirstMatch();
+  assert.equal(tui.showTools, true);
+  assert.equal(tui.activeMatchKey, "2:7");
+});
+
+test("metadata-only filters keep a session without navigable matches", () => {
+  const session = tuiSession({
+    entries: [{ role: "user", text: "ordinary prompt", index: 1 }],
+    searchText: "ordinary prompt /workspace/special-directory",
+  });
+  const tui = new HistoryTui([session], { noColor: true });
+  tui.applySearch("special-directory");
+  tui.selectFirstMatch();
+  assert.equal(tui.filtered.length, 1);
+  assert.deepEqual(tui.matchesForSession(), []);
+  assert.equal(tui.activeMatchKey, null);
+  tui.navigateMatch(1);
+  assert.equal(tui.activeMatchKey, null);
 });

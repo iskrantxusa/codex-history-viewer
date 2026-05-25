@@ -20,7 +20,8 @@ Options:
 
 Keys in interactive mode:
   Up/Down, j/k  navigate or scroll    Tab/Enter  switch panel
-  /             search                c          clear search
+  /             search                n/N        next/previous match
+  c             clear search
   t             tool activity         ?          shortcuts
   g/G           top/bottom             q          quit`;
 }
