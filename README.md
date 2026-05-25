@@ -8,7 +8,7 @@ A full-screen terminal viewer for reading `codex-cli` history stored in
 - Two-pane TUI with the session list on the left and conversation view on the right.
 - Search across titles, working directories, and message contents.
 - Next/previous match navigation with automatic scrolling inside a selected session.
-- Highlighting for roles, Markdown headings, lists, and fenced code blocks.
+- Syntax highlighting for common fenced code blocks and Codex-style Git/patch changes.
 - Optional display of tool calls and their results.
 - Plain-text output for piping, scripting, and quick inspection.
 - Native support for the Codex JSONL session format with internal message duplicates removed.

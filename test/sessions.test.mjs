@@ -117,6 +117,42 @@ test("finds and highlights every match while marking the active one", () => {
   assert.equal(line.text.split(ansi.activeSearch).length - 1, 1);
 });
 
+test("syntax highlights fenced source code without coloring markdown lists as diffs", () => {
+  const lines = styledContentLines(
+    "```js\nconst count = 42; // total\n```\n- plain list item",
+    80,
+    "",
+    true,
+  );
+  assert.match(lines[1].text, new RegExp(ansi.magenta.replace("[", "\\[")));
+  assert.match(lines[1].text, new RegExp(ansi.yellow.replace("[", "\\[")));
+  assert.match(lines[1].text, new RegExp(ansi.gray.replace("[", "\\[")));
+  assert.match(lines[3].text, new RegExp(ansi.cyan.replace("[", "\\[")));
+  assert.doesNotMatch(lines[3].text, new RegExp(ansi.brightRed.replace("[", "\\[")));
+});
+
+test("styles git diffs and Codex patch tool input as changes", () => {
+  const diff = styledContentLines(
+    "diff --git a/a.js b/a.js\n@@ -1 +1 @@\n # unchanged\n-old\n+new",
+    80,
+    "",
+    true,
+  );
+  assert.match(diff[0].text, new RegExp(ansi.gray.replace("[", "\\[")));
+  assert.match(diff[1].text, new RegExp(ansi.brightCyan.replace("[", "\\[")));
+  assert.doesNotMatch(diff[2].text, new RegExp(ansi.brightCyan.replace("[", "\\[")));
+  assert.match(diff[3].text, new RegExp(ansi.brightRed.replace("[", "\\[")));
+  assert.match(diff[4].text, new RegExp(ansi.brightGreen.replace("[", "\\[")));
+  const patch = styledContentLines(
+    "*** Begin Patch\n*** Update File: lib/a.mjs\n-old\n+new\n*** End Patch",
+    80,
+    "",
+    true,
+  );
+  assert.match(patch[2].text, new RegExp(ansi.brightRed.replace("[", "\\[")));
+  assert.match(patch[3].text, new RegExp(ansi.brightGreen.replace("[", "\\[")));
+});
+
 function tuiSession({ entries, tools = [], searchText = "" }) {
   return {
     id: "test",
