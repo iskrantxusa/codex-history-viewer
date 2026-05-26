@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { cardsFromPatchEvent, parseGitDiffOutput } from "../lib/changes.mjs";
 import { ansi, findTextMatches, styledContentLines } from "../lib/format.mjs";
+import { resumeCommand } from "../lib/resume.mjs";
 import { HistoryTui, printSession } from "../lib/tui.mjs";
 import { filterSessions, loadSessions, parseSessionFile } from "../lib/sessions.mjs";
 
@@ -324,4 +325,54 @@ test("metadata-only filters keep a session without navigable matches", () => {
   assert.equal(tui.activeMatchKey, null);
   tui.navigateMatch(1);
   assert.equal(tui.activeMatchKey, null);
+});
+
+test("builds shell-safe Codex resume commands", () => {
+  assert.equal(resumeCommand("019e5fed-1234"), "codex resume 019e5fed-1234");
+  assert.equal(resumeCommand("named thread's work"), "codex resume 'named thread'\\''s work'");
+  assert.equal(resumeCommand(""), "");
+});
+
+test("r copies the selected session resume command and reports success", async () => {
+  const copied = [];
+  const session = tuiSession({ entries: [] });
+  session.id = "019e5fed-1234";
+  const tui = new HistoryTui([session], {
+    noColor: true,
+    copyText: async (text) => copied.push(text),
+  });
+  tui.render = () => {};
+  await tui.handleKey("r");
+  assert.deepEqual(copied, ["codex resume 019e5fed-1234"]);
+  assert.equal(tui.statusMessage, " Copied: codex resume 019e5fed-1234");
+  tui.handleKey("c");
+  assert.equal(tui.statusMessage, "");
+});
+
+test("r shows resume commands when clipboard fails and rejects missing ids", async () => {
+  let attempts = 0;
+  const failed = tuiSession({ entries: [] });
+  failed.id = "session-one";
+  const tui = new HistoryTui([failed], {
+    noColor: true,
+    copyText: async () => {
+      attempts += 1;
+      throw new Error("clipboard unavailable");
+    },
+  });
+  tui.render = () => {};
+  await tui.handleKey("r");
+  assert.equal(tui.statusMessage, " Copy failed: codex resume session-one");
+  const missing = tuiSession({ entries: [] });
+  missing.id = "";
+  const withoutId = new HistoryTui([missing], {
+    noColor: true,
+    copyText: async () => {
+      attempts += 1;
+    },
+  });
+  withoutId.render = () => {};
+  await withoutId.handleKey("r");
+  assert.equal(withoutId.statusMessage, " Cannot resume: session id is missing");
+  assert.equal(attempts, 1);
 });

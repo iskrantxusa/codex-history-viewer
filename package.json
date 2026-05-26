@@ -3,15 +3,40 @@
   "version": "0.1.0",
   "description": "Terminal viewer for codex-cli session history",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iskrantxusa/codex-history-viewer.git"
+  },
+  "homepage": "https://github.com/iskrantxusa/codex-history-viewer#readme",
+  "bugs": {
+    "url": "https://github.com/iskrantxusa/codex-history-viewer/issues"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "bin": {
     "codex-history": "./bin/codex-history.mjs"
   },
   "scripts": {
     "start": "node ./bin/codex-history.mjs",
-    "test": "node test/sessions.test.mjs"
+    "test": "node test/sessions.test.mjs && sh ./test/install.test.sh",
+    "build:sea": "node ./scripts/build-sea.mjs",
+    "test:sea": "node ./scripts/smoke-sea.mjs",
+    "pack:config": "node ./scripts/package-config.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
-  "license": "MIT"
+  "devDependencies": {
+    "esbuild": "^0.28.0",
+    "postject": "^1.0.0-alpha.6"
+  }
 }

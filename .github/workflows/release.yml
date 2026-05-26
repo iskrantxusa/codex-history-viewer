@@ -1,0 +1,139 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+      - run: npm ci
+      - id: version
+        shell: bash
+        run: |
+          package_version="$(node -p "require('./package.json').version")"
+          test "$GITHUB_REF_NAME" = "v$package_version"
+          echo "version=$package_version" >> "$GITHUB_OUTPUT"
+      - run: npm test
+
+  linux:
+    needs: validate
+    name: Linux ${{ matrix.arch }}
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-24.04
+            deb_arch: amd64
+            rpm_arch: x86_64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            deb_arch: arm64
+            rpm_arch: aarch64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+      - run: npm ci
+      - run: npm run build:sea
+      - run: npm run test:sea
+      - name: Create standalone archive
+        run: |
+          mkdir -p dist/archive
+          cp "dist/codex-history-linux-${{ matrix.arch }}" dist/archive/codex-history
+          tar -czf "dist/codex-history-linux-${{ matrix.arch }}.tar.gz" -C dist/archive codex-history
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+      - name: Install nFPM
+        run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.46.3
+      - name: Build system packages
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          RELEASE_ARCH: ${{ matrix.arch }}
+        run: |
+          npm run pack:config
+          nfpm package --config dist/nfpm.yaml --packager deb --target "dist/codex-history-viewer_${VERSION}_${{ matrix.deb_arch }}.deb"
+          nfpm package --config dist/nfpm.yaml --packager rpm --target "dist/codex-history-viewer-${VERSION}-1.${{ matrix.rpm_arch }}.rpm"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: |
+            dist/codex-history-linux-${{ matrix.arch }}.tar.gz
+            dist/codex-history-viewer_*.deb
+            dist/codex-history-viewer-*.rpm
+
+  publish:
+    needs: [validate, linux, package-smoke]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: linux-*
+          path: dist
+          merge-multiple: true
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum ./*.tar.gz ./*.deb ./*.rpm > SHA256SUMS
+      - name: Create draft GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/* --draft --generate-notes --verify-tag
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - run: npm ci
+      - name: Publish npm package
+        env:
+          BOOTSTRAP_NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "$BOOTSTRAP_NPM_TOKEN" ]; then
+            npm config set //registry.npmjs.org/:_authToken "$BOOTSTRAP_NPM_TOKEN"
+          fi
+          npm publish --provenance --access public
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false
+
+  package-smoke:
+    needs: linux
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-x64
+          path: dist
+      - name: Test Debian package
+        run: |
+          docker run --rm --platform linux/amd64 -v "$PWD/dist:/assets:ro" ubuntu:24.04 sh -c \
+            'apt-get update >/dev/null && apt-get install -y --no-install-recommends /assets/*.deb >/dev/null && codex-history --help >/dev/null'
+      - name: Test RPM package
+        run: |
+          docker run --rm --platform linux/amd64 -v "$PWD/dist:/assets:ro" fedora:latest sh -c \
+            'dnf install -y --setopt=install_weak_deps=False /assets/*.rpm >/dev/null && codex-history --help >/dev/null'

@@ -23,7 +23,8 @@ Keys in interactive mode:
   /             search                n/N        next/previous match
   c             clear search
   t             tool activity         ?          shortcuts
-  g/G           top/bottom             q          quit`;
+  r             copy resume command    g/G        top/bottom
+  q             quit`;
 }
 
 function parseArguments(args) {
