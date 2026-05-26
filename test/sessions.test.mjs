@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { cardsFromPatchEvent, parseGitDiffOutput } from "../lib/changes.mjs";
 import { ansi, findTextMatches, styledContentLines } from "../lib/format.mjs";
 import { HistoryTui, printSession } from "../lib/tui.mjs";
 import { filterSessions, loadSessions, parseSessionFile } from "../lib/sessions.mjs";
@@ -153,6 +154,87 @@ test("styles git diffs and Codex patch tool input as changes", () => {
   assert.match(patch[3].text, new RegExp(ansi.brightGreen.replace("[", "\\[")));
 });
 
+test("parses git diff cards with old and new line numbers", () => {
+  const parsed = parseGitDiffOutput(
+    "tool output\nOutput:\ndiff --git a/src/a.py b/src/a.py\n--- a/src/a.py\n+++ b/src/a.py\n@@ -2,2 +2,2 @@\n-old = 1\n+new = 2\n keep",
+  );
+  assert.equal(parsed.prefix, "tool output\nOutput:");
+  assert.equal(parsed.cards[0].path, "src/a.py");
+  assert.equal(parsed.cards[0].additions, 1);
+  assert.equal(parsed.cards[0].deletions, 1);
+  assert.deepEqual(parsed.cards[0].hunks[0].lines[0], {
+    kind: "delete",
+    text: "old = 1",
+    raw: "-old = 1",
+    oldLine: 2,
+    newLine: null,
+  });
+  assert.equal(parsed.cards[0].hunks[0].lines[2].newLine, 3);
+});
+
+test("builds structured patch cards and reports failed patches", () => {
+  const success = cardsFromPatchEvent({
+    success: true,
+    changes: {
+      "/code/demo/src/main.py": {
+        type: "update",
+        unified_diff: "@@ -1,1 +1,1 @@\n-print(1)\n+print(2)",
+      },
+    },
+  });
+  assert.equal(success.cards[0].path, "/code/demo/src/main.py");
+  assert.equal(success.cards[0].language, "python");
+  assert.equal(cardsFromPatchEvent({ success: false, stderr: "Invalid Context" }).error, "Invalid Context");
+});
+
+test("session parser replaces apply_patch payload with relative change cards", async () => {
+  const { file } = await fixture([
+    records[0],
+    {
+      timestamp: "2026-05-25T10:00:01Z",
+      type: "response_item",
+      payload: { type: "custom_tool_call", name: "apply_patch", input: "*** Begin Patch\nsecret raw patch" },
+    },
+    {
+      timestamp: "2026-05-25T10:00:02Z",
+      type: "event_msg",
+      payload: {
+        type: "patch_apply_end",
+        success: true,
+        changes: {
+          "/code/demo/src/main.py": {
+            type: "update",
+            unified_diff: "@@ -3,1 +3,1 @@\n-old = 1\n+new = 2",
+          },
+        },
+      },
+    },
+  ]);
+  const session = await parseSessionFile(file);
+  assert.equal(session.tools.length, 1);
+  assert.equal(session.tools[0].role, "change");
+  assert.equal(session.tools[0].card.path, "src/main.py");
+  assert.doesNotMatch(session.searchText, /secret raw patch/);
+});
+
+test("session parser keeps failed patch diagnostics as an error card", async () => {
+  const { file } = await fixture([
+    records[0],
+    {
+      timestamp: "2026-05-25T10:00:02Z",
+      type: "event_msg",
+      payload: {
+        type: "patch_apply_end",
+        success: false,
+        stderr: "Invalid Context 10",
+      },
+    },
+  ]);
+  const session = await parseSessionFile(file);
+  assert.equal(session.tools[0].role, "change_error");
+  assert.equal(session.tools[0].text, "Invalid Context 10");
+});
+
 function tuiSession({ entries, tools = [], searchText = "" }) {
   return {
     id: "test",
@@ -205,6 +287,28 @@ test("navigating to a hidden tool result reveals tool activity", () => {
   tui.selectFirstMatch();
   assert.equal(tui.showTools, true);
   assert.equal(tui.activeMatchKey, "2:7");
+});
+
+test("renders change cards with gutters and full-line addition backgrounds", () => {
+  const card = cardsFromPatchEvent({
+    success: true,
+    changes: {
+      "src/main.py": {
+        type: "update",
+        unified_diff: "@@ -3,1 +3,1 @@\n-old = 1\n+new = 2",
+      },
+    },
+  }).cards[0];
+  const entry = { role: "change", card, text: `${card.path}\n${card.rawDiff}`, index: 2 };
+  const session = tuiSession({ entries: [], tools: [entry] });
+  const tui = new HistoryTui([session]);
+  tui.showTools = true;
+  const lines = tui.dialogLines(session, 50);
+  assert.match(lines[0].text, /src\/main.py/);
+  assert.match(lines[2].text, /3\s+-/);
+  assert.match(lines[2].text, new RegExp(ansi.changeDelete.replace("[", "\\[")));
+  assert.match(lines[3].text, /3\s+\+\s/);
+  assert.match(lines[3].text, new RegExp(ansi.changeAdd.replace("[", "\\[")));
 });
 
 test("metadata-only filters keep a session without navigable matches", () => {

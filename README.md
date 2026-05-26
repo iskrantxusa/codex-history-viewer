@@ -9,6 +9,7 @@ A full-screen terminal viewer for reading `codex-cli` history stored in
 - Search across titles, working directories, and message contents.
 - Next/previous match navigation with automatic scrolling inside a selected session.
 - Syntax highlighting for common fenced code blocks and Codex-style Git/patch changes.
+- Review-style Git Changes cards with file headers, line numbers, and full-width added/removed backgrounds.
 - Optional display of tool calls and their results.
 - Plain-text output for piping, scripting, and quick inspection.
 - Native support for the Codex JSONL session format with internal message duplicates removed.
@@ -54,6 +55,10 @@ Search filters sessions using conversation text and session metadata. The
 `Match X/Y` counter and `n` / `N` navigation refer to occurrences in the
 selected session's conversation and tool activity. Navigating to a tool
 activity match automatically reveals tool output.
+
+With tool activity enabled, applied patches and `git diff` output are rendered
+as file-by-file change cards with source syntax highlighting layered over the
+added and removed line backgrounds.
 
 ## Verification
 
