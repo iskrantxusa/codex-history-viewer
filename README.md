@@ -18,6 +18,22 @@ the npm package runs on Node.js 22+ with no application dependencies.
 
 ## Installation
 
+### Supported Platforms And Installation Methods
+
+Status: 🟢 Released · 🟡 Planned · 🔴 Not planned
+
+| Platform | Architecture | Installation Method | Status |
+| --- | --- | --- | --- |
+| Linux | `x86_64`, `arm64` | `npm install -g codex-history-viewer` | 🟢 Released |
+| Linux | `x86_64`, `arm64` | Standalone binary via `install.sh` / GitHub Releases | 🟢 Released |
+| Debian / Ubuntu / Linux Mint | `amd64`, `arm64` | `.deb` package | 🟢 Released |
+| Fedora / RHEL-family | `x86_64`, `aarch64` | `.rpm` package | 🟢 Released |
+| macOS | Apple Silicon, Intel TBD | npm / standalone package | 🟡 Planned |
+| Windows | - | Native installation package | 🔴 Not planned |
+
+Published distributions: [npm package](https://www.npmjs.com/package/codex-history-viewer)
+and [GitHub Release v0.1.0](https://github.com/iskrantxusa/codex-history-viewer/releases/tag/v0.1.0).
+
 ### Install Script (Linux)
 
 Install the latest standalone binary into `~/.local/bin`:
