@@ -1,4 +1,4 @@
-import { chmod, copyFile, mkdir, rm, writeFile } from "node:fs/promises";
+import { access, chmod, copyFile, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -16,6 +16,8 @@ const binary = path.join(dist, process.env.BINARY_NAME ?? `codex-history-linux-$
 const bundled = path.join(dist, "sea-entry.cjs");
 const blob = path.join(dist, "sea-prep.blob");
 const config = path.join(dist, "sea-config.json");
+const licenseDirectory = path.join(dist, "licenses", "node");
+const nodeLicense = path.resolve(path.dirname(process.execPath), "..", "LICENSE");
 
 function run(command, args) {
   const result = spawnSync(command, args, { cwd: root, encoding: "utf8", stdio: "pipe" });
@@ -26,6 +28,9 @@ function run(command, args) {
 }
 
 await mkdir(dist, { recursive: true });
+await access(nodeLicense);
+await mkdir(licenseDirectory, { recursive: true });
+await copyFile(nodeLicense, path.join(licenseDirectory, "LICENSE"));
 await rm(binary, { force: true });
 await build({
   entryPoints: [path.join(root, "bin", "codex-history.mjs")],

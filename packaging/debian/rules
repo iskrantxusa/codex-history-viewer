@@ -1,0 +1,20 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	test -x binaries/$$(dpkg-architecture -qDEB_HOST_ARCH)/codex-history
+
+override_dh_auto_test:
+	binaries/$$(dpkg-architecture -qDEB_HOST_ARCH)/codex-history --help >/dev/null
+
+override_dh_auto_install:
+	install -Dm755 binaries/$$(dpkg-architecture -qDEB_HOST_ARCH)/codex-history \
+		debian/codex-history-viewer/usr/bin/codex-history
+
+# The executable already contains an injected Node SEA blob. Rewriting ELF
+# sections after upstream smoke testing can invalidate the embedded payload.
+override_dh_dwz:
+
+override_dh_strip:

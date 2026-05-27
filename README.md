@@ -28,6 +28,7 @@ Status: 🟢 Released · 🟡 Planned · 🔴 Not planned
 | Linux | `x86_64`, `arm64` | Standalone binary via `install.sh` / GitHub Releases | 🟢 Released |
 | Debian / Ubuntu / Linux Mint | `amd64`, `arm64` | `.deb` package | 🟢 Released |
 | Fedora / RHEL-family | `x86_64`, `aarch64` | `.rpm` package | 🟢 Released |
+| Ubuntu / Linux Mint | `amd64`, `arm64` | Launchpad PPA / `apt` | 🟡 Planned |
 | macOS | Apple Silicon, Intel TBD | npm / standalone package | 🟡 Planned |
 | Windows | - | Native installation package | 🔴 Not planned |
 
@@ -71,6 +72,22 @@ sudo dnf install ./codex-history-viewer-0.1.0-1.x86_64.rpm
 
 Packages and standalone archives for `amd64`/`x86_64` and `arm64`/`aarch64`
 are attached to each [GitHub Release](https://github.com/iskrantxusa/codex-history-viewer/releases).
+Standalone archives and packages from `v0.1.1` onward include notices for the
+embedded Node.js runtime.
+
+### Launchpad PPA (Planned)
+
+A Launchpad PPA for Ubuntu 24.04 and Ubuntu 26.04 is prepared for a future
+`v0.1.1` publication:
+
+```bash
+sudo add-apt-repository ppa:iskrantxusa/codex-history-viewer
+sudo apt update
+sudo apt install codex-history-viewer
+```
+
+Do not use this method until the PPA status in the support matrix changes to
+Released.
 
 ### Clipboard Support
 

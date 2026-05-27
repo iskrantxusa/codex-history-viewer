@@ -56,7 +56,11 @@ jobs:
         run: |
           mkdir -p dist/archive
           cp "dist/codex-history-linux-${{ matrix.arch }}" dist/archive/codex-history
-          tar -czf "dist/codex-history-linux-${{ matrix.arch }}.tar.gz" -C dist/archive codex-history
+          cp LICENSE dist/archive/LICENSE
+          cp packaging/STANDALONE-NOTICE.md dist/archive/STANDALONE-NOTICE.md
+          cp dist/licenses/node/LICENSE dist/archive/NODE-LICENSE
+          tar -czf "dist/codex-history-linux-${{ matrix.arch }}.tar.gz" -C dist/archive \
+            codex-history LICENSE STANDALONE-NOTICE.md NODE-LICENSE
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24.x"
@@ -94,7 +98,7 @@ jobs:
       - name: Generate checksums
         run: |
           cd dist
-          sha256sum ./*.tar.gz ./*.deb ./*.rpm > SHA256SUMS
+          sha256sum -- *.tar.gz *.deb *.rpm > SHA256SUMS
       - name: Create draft GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -132,7 +136,7 @@ jobs:
       - name: Test Debian package
         run: |
           docker run --rm --platform linux/amd64 -v "$PWD/dist:/assets:ro" ubuntu:24.04 sh -c \
-            'apt-get update >/dev/null && apt-get install -y --no-install-recommends /assets/*.deb >/dev/null && codex-history --help >/dev/null'
+            'apt-get update >/dev/null && apt-get install -y --no-install-recommends /assets/*.deb >/dev/null && codex-history --help >/dev/null && test -f /usr/share/doc/codex-history-viewer/NODE-LICENSE'
       - name: Test RPM package
         run: |
           docker run --rm --platform linux/amd64 -v "$PWD/dist:/assets:ro" fedora:latest sh -c \

@@ -1,0 +1,5 @@
+# This PPA distributes the upstream standalone release binary. The source
+# project remains available from Vcs-Git, but Launchpad installs the released
+# Node SEA artifacts so users do not need a newer system Node.js package.
+codex-history-viewer source: source-is-missing [binaries/amd64/codex-history]
+codex-history-viewer source: source-is-missing [binaries/arm64/codex-history]

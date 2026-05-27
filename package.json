@@ -1,6 +1,6 @@
 {
   "name": "codex-history-viewer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Terminal viewer for codex-cli session history",
   "type": "module",
   "license": "MIT",
@@ -27,7 +27,7 @@
   },
   "scripts": {
     "start": "node ./bin/codex-history.mjs",
-    "test": "node test/sessions.test.mjs && sh ./test/install.test.sh",
+    "test": "node test/sessions.test.mjs && sh ./test/install.test.sh && sh ./test/packaging.test.sh",
     "build:sea": "node ./scripts/build-sea.mjs",
     "test:sea": "node ./scripts/smoke-sea.mjs",
     "pack:config": "node ./scripts/package-config.mjs"

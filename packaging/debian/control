@@ -1,0 +1,21 @@
+Source: codex-history-viewer
+Section: utils
+Priority: optional
+Maintainer: iskrantxusa <iskrantxusa@users.noreply.github.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+Homepage: https://github.com/iskrantxusa/codex-history-viewer
+Vcs-Git: https://github.com/iskrantxusa/codex-history-viewer.git
+Vcs-Browser: https://github.com/iskrantxusa/codex-history-viewer
+
+Package: codex-history-viewer
+Architecture: amd64 arm64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: wl-clipboard | xclip | xsel
+Description: terminal viewer for codex-cli session history
+ Full-screen terminal interface for browsing Codex CLI session history, with
+ search, syntax-highlighted changes, and resume-command clipboard support.
+ .
+ This PPA package embeds the Node.js runtime used by the standalone upstream
+ distribution and does not require the system Node.js package.

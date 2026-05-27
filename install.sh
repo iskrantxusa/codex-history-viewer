@@ -43,7 +43,8 @@ curl -fsSL -o "$tmp/$asset" "$base_url/$asset"
 curl -fsSL -o "$tmp/SHA256SUMS" "$base_url/SHA256SUMS"
 (
   cd "$tmp"
-  grep "  $asset\$" SHA256SUMS > SHA256SUMS.selected || {
+  grep "  $asset\$" SHA256SUMS > SHA256SUMS.selected ||
+    grep "  \./$asset\$" SHA256SUMS > SHA256SUMS.selected || {
     printf '%s\n' "Checksum for $asset is missing from SHA256SUMS." >&2
     exit 1
   }

@@ -22,6 +22,11 @@ PATH="/usr/bin:/bin" RELEASE_BASE_URL="file://$release" INSTALL_DIR="$target" \
 test -x "$target/codex-history"
 test "$("$target/codex-history")" = "installed smoke"
 
+(cd "$release" && sha256sum "./codex-history-linux-$arch.tar.gz" > SHA256SUMS)
+PATH="/usr/bin:/bin" RELEASE_BASE_URL="file://$release" INSTALL_DIR="$root/prefixed" \
+  sh ./install.sh >/dev/null
+test "$("$root/prefixed/codex-history")" = "installed smoke"
+
 printf '%s\n' "invalid" > "$release/codex-history-linux-$arch.tar.gz"
 if PATH="/usr/bin:/bin" RELEASE_BASE_URL="file://$release" INSTALL_DIR="$root/bad" \
   sh ./install.sh >/dev/null 2>&1; then

@@ -1,0 +1,62 @@
+.TH CODEX-HISTORY 1 "May 2026" "codex-history-viewer 0.1.1" "User Commands"
+.SH NAME
+codex-history \- browse codex-cli session history in a terminal interface
+.SH SYNOPSIS
+.B codex-history
+.RI [ options ]
+.SH DESCRIPTION
+.B codex-history
+opens a two-pane terminal viewer for Codex CLI sessions stored under
+.IR ~/.codex/sessions .
+It supports text search, syntax-highlighted change cards, and optional tool
+activity display.
+.SH OPTIONS
+.TP
+.BR \-d ", " \-\-dir " " \fIPATH\fR
+Read sessions from
+.IR PATH .
+.TP
+.BR \-s ", " \-\-search " " \fITEXT\fR
+Filter sessions by matching text.
+.TP
+.BR \-\-session " " \fIID\fR
+Select a session by identifier or filename fragment.
+.TP
+.B \-\-list
+List matching dialogs without opening the interactive interface.
+.TP
+.B \-\-plain
+Print one selected dialog without opening the interactive interface.
+.TP
+.B \-\-tools
+Include tool activity in plain output or show it on startup.
+.TP
+.B \-\-no\-color
+Disable ANSI color output.
+.TP
+.BR \-h ", " \-\-help
+Show command help.
+.SH INTERACTIVE KEYS
+.TP
+.B /
+Search sessions and conversation text.
+.TP
+.B n / N
+Navigate to the next or previous search match.
+.TP
+.B t
+Show or hide tool activity.
+.TP
+.B r
+Copy a
+.B codex resume
+command for the selected session.
+.TP
+.B q
+Quit.
+.SH FILES
+.TP
+.I ~/.codex/sessions
+Default Codex CLI session storage directory.
+.SH SEE ALSO
+.BR codex (1)

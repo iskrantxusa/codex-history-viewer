@@ -36,6 +36,14 @@ recommends:
 contents:
   - src: ${path.join("dist", architecture.binary)}
     dst: /usr/bin/codex-history
+  - src: LICENSE
+    dst: /usr/share/doc/codex-history-viewer/LICENSE
+  - src: packaging/STANDALONE-NOTICE.md
+    dst: /usr/share/doc/codex-history-viewer/STANDALONE-NOTICE.md
+  - src: dist/licenses/node/LICENSE
+    dst: /usr/share/doc/codex-history-viewer/NODE-LICENSE
+  - src: packaging/codex-history.1
+    dst: /usr/share/man/man1/codex-history.1
 `;
 await writeFile(path.join(dist, "nfpm.yaml"), config);
 console.log(`Generated nFPM configs for ${releaseArch} ${version}`);

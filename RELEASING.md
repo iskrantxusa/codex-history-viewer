@@ -3,42 +3,37 @@
 Releases are created from version tags and publish the npm package, standalone
 Linux binaries, `.deb` packages, and `.rpm` packages together.
 
-## First Release
+## npm Trusted Publishing
 
-`codex-history-viewer` must exist in the npm registry before npm Trusted
-Publishing can be configured.
+`codex-history-viewer@0.1.0` has been published. Configure npm Trusted
+Publishing for GitHub Actions workflow `.github/workflows/release.yml` and
+remove the bootstrap `NPM_TOKEN` secret before publishing subsequent versions.
 
-1. Create a granular npm access token that can publish
-   `codex-history-viewer`.
-2. Add it to this GitHub repository as an Actions secret named `NPM_TOKEN`.
-3. Do not push the first release tag until the secret has been added.
-4. Confirm `package.json` has the intended version and push the corresponding
-   tag, for example:
-
-   ```bash
-   git tag v0.1.0
-   git push origin v0.1.0
-   ```
-
-The Release workflow validates the version, builds and smoke-tests the
-artifacts, prepares a draft GitHub Release, publishes npm with provenance, and
-then publishes the GitHub Release. If npm publication fails, configure the
-missing credential and rerun the failed workflow; existing draft assets are
-updated in place.
-
-## After The First Release
-
-1. Configure npm Trusted Publishing for the GitHub Actions workflow
-   `.github/workflows/release.yml` in repository
-   `iskrantxusa/codex-history-viewer`.
-2. Delete the `NPM_TOKEN` repository secret.
-3. Revoke the temporary npm access token.
-
-Subsequent tagged releases publish through GitHub Actions OIDC without a
-long-lived npm token.
+The Release workflow validates the version, builds and smoke-tests artifacts,
+prepares a draft GitHub Release, publishes npm with provenance, and then
+publishes the GitHub Release. Existing draft assets are updated on rerun.
 
 ## Versioned Releases
 
 For each later release, update `package.json` and `package-lock.json` to the
 new version, merge the tested changes to `main`, then push the matching
 `vX.Y.Z` tag.
+
+## Launchpad PPA
+
+The `Publish PPA` workflow packages a published standalone release into
+signed Debian source uploads for Ubuntu 24.04 (`noble`) and Ubuntu 26.04
+(`resolute`).
+
+Before the first PPA upload:
+
+1. Create `ppa:iskrantxusa/codex-history-viewer` in Launchpad.
+2. Create a dedicated OpenPGP release key and register its public key in the
+   Launchpad account that owns the PPA.
+3. Add the armored private key and passphrase as repository secrets:
+   `PPA_GPG_PRIVATE_KEY` and `PPA_GPG_PASSPHRASE`.
+4. Publish `v0.1.1`; its archives include the embedded Node.js runtime notices
+   required by the PPA packages.
+
+The PPA workflow runs after a GitHub Release is published and can also be
+rerun manually for an existing release tag.

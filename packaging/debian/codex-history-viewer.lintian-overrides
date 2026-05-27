@@ -1,0 +1,6 @@
+# The packaged executable is the upstream Node SEA distribution: its embedded
+# runtime libraries and injected payload must remain intact after packaging.
+codex-history-viewer: embedded-library zlib [usr/bin/codex-history]
+codex-history-viewer: unstripped-binary-or-object [usr/bin/codex-history]
+codex-history-viewer: hardening-no-pie [usr/bin/codex-history]
+codex-history-viewer: hardening-no-fortify-functions [usr/bin/codex-history]
