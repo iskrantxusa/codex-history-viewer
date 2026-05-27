@@ -28,12 +28,21 @@ signed Debian source uploads for Ubuntu 24.04 (`noble`) and Ubuntu 26.04
 Before the first PPA upload:
 
 1. Create `ppa:iskrantxusa/codex-history-viewer` in Launchpad.
-2. Create a dedicated OpenPGP release key and register its public key in the
-   Launchpad account that owns the PPA.
-3. Add the armored private key and passphrase as repository secrets:
+2. Register the dedicated release public key from
+   `.release-gnupg/codex-history-viewer-public.asc` in the Launchpad account
+   that owns the PPA. This local keyring is intentionally excluded from git.
+3. Add `.release-gnupg/github-actions-signing-subkeys.asc` and the contents of
+   `.release-gnupg/release-key.passphrase` as repository secrets:
    `PPA_GPG_PRIVATE_KEY` and `PPA_GPG_PASSPHRASE`.
 4. Publish `v0.1.1`; its archives include the embedded Node.js runtime notices
    required by the PPA packages.
 
 The PPA workflow runs after a GitHub Release is published and can also be
 rerun manually for an existing release tag.
+
+Back up the excluded local release keyring to an already mounted encrypted
+disk by replacing `/mnt/encrypted-backup` with its mount point:
+
+```bash
+gpgconf --homedir "$PWD/.release-gnupg" --kill gpg-agent && tar --exclude='S.*' -czf "/mnt/encrypted-backup/codex-history-viewer-release-gnupg-$(date +%F).tar.gz" -C "$PWD" .release-gnupg
+```
