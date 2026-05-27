@@ -81,7 +81,7 @@ A Launchpad PPA for Ubuntu 24.04 and Ubuntu 26.04 is prepared for a future
 `v0.1.1` publication:
 
 ```bash
-sudo add-apt-repository ppa:iskrantxusa/codex-history-viewer
+sudo add-apt-repository ppa:iskrant/codex-history
 sudo apt update
 sudo apt install codex-history-viewer
 ```

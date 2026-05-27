@@ -27,7 +27,8 @@ signed Debian source uploads for Ubuntu 24.04 (`noble`) and Ubuntu 26.04
 
 Before the first PPA upload:
 
-1. Create `ppa:iskrantxusa/codex-history-viewer` in Launchpad.
+1. Confirm that the public PPA `ppa:iskrant/codex-history` is active in
+   Launchpad.
 2. Register the dedicated release public key from
    `.release-gnupg/codex-history-viewer-public.asc` in the Launchpad account
    that owns the PPA. This local keyring is intentionally excluded from git.

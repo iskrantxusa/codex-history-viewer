@@ -14,8 +14,8 @@ permissions:
   contents: read
 
 env:
-  PPA_OWNER: iskrantxusa
-  PPA_NAME: codex-history-viewer
+  PPA_OWNER: iskrant
+  PPA_NAME: codex-history
 
 jobs:
   upload:
