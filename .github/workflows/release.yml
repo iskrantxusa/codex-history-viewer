@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   validate:
     runs-on: ubuntu-24.04
@@ -64,6 +67,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24.x"
+          cache: false
       - name: Install nFPM
         run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.46.3
       - name: Build system packages
@@ -135,8 +139,9 @@ jobs:
           path: dist
       - name: Test Debian package
         run: |
+          dpkg-deb -c dist/*.deb | grep -q './usr/share/doc/codex-history-viewer/NODE-LICENSE'
           docker run --rm --platform linux/amd64 -v "$PWD/dist:/assets:ro" ubuntu:24.04 sh -c \
-            'apt-get update >/dev/null && apt-get install -y --no-install-recommends /assets/*.deb >/dev/null && codex-history --help >/dev/null && test -f /usr/share/doc/codex-history-viewer/NODE-LICENSE'
+            'apt-get update >/dev/null && apt-get install -y --no-install-recommends /assets/*.deb >/dev/null && codex-history --help >/dev/null'
       - name: Test RPM package
         run: |
           docker run --rm --platform linux/amd64 -v "$PWD/dist:/assets:ro" fedora:latest sh -c \
