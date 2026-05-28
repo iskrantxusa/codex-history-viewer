@@ -14,6 +14,7 @@ permissions:
   contents: read
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   PPA_OWNER: iskrant
   PPA_NAME: codex-history
 
@@ -78,7 +79,8 @@ jobs:
         run: |
           test -n "$PPA_GPG_PASSPHRASE"
           source_dir="$(VERSION="$VERSION" SERIES="$SERIES" UBUNTU_VERSION="$UBUNTU_VERSION" ./scripts/build-ppa-source.sh)"
-          encoded_passphrase="$(printf '%s' "$PPA_GPG_PASSPHRASE" | base64 -w0)"
+          normalized_passphrase="$(printf '%s' "$PPA_GPG_PASSPHRASE" | tr -d '\r\n')"
+          encoded_passphrase="$(printf '%s' "$normalized_passphrase" | base64 -w0)"
           umask 077
           cat > "$RUNNER_TEMP/gpg-sign" <<EOF
           #!/bin/sh
