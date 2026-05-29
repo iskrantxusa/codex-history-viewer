@@ -7,11 +7,15 @@ UBUNTU_VERSION="${UBUNTU_VERSION:?UBUNTU_VERSION is required}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-dist/ppa-assets}"
 OUTPUT_DIR="${OUTPUT_DIR:-dist/ppa/$SERIES}"
 MAINTAINER="${MAINTAINER:-iskrantxusa <iskrantxusa@users.noreply.github.com>}"
+PPA_REVISION="${PPA_REVISION:-1}"
+ORIG_TARBALL_SOURCE="${ORIG_TARBALL_SOURCE:-}"
+SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-946684800}"
 
 case "$VERSION" in v*) VERSION="${VERSION#v}" ;; esac
 case "$SERIES" in noble|resolute) ;; *) printf '%s\n' "Unsupported Ubuntu series: $SERIES" >&2; exit 1 ;; esac
+case "$PPA_REVISION" in ""|*[!0-9]*) printf '%s\n' "PPA_REVISION must be a positive integer." >&2; exit 1 ;; esac
 
-DEBIAN_VERSION="$VERSION-1ppa1~${SERIES}1"
+DEBIAN_VERSION="$VERSION-1ppa${PPA_REVISION}~${SERIES}1"
 SOURCE_DIR="$OUTPUT_DIR/codex-history-viewer-$VERSION"
 ORIG_TARBALL="$OUTPUT_DIR/codex-history-viewer_$VERSION.orig.tar.gz"
 tmp="$(mktemp -d)"
@@ -49,5 +53,15 @@ codex-history-viewer ($DEBIAN_VERSION) $SERIES; urgency=medium
  -- $MAINTAINER  $(date -R)
 EOF
 mkdir -p "$OUTPUT_DIR"
-tar -czf "$ORIG_TARBALL" -C "$OUTPUT_DIR" --exclude="codex-history-viewer-$VERSION/debian" "codex-history-viewer-$VERSION"
+if [ -n "$ORIG_TARBALL_SOURCE" ]; then
+  case "$ORIG_TARBALL_SOURCE" in
+    http://*|https://*|file://*) curl -fsSL -o "$ORIG_TARBALL" "$ORIG_TARBALL_SOURCE" ;;
+    *) cp "$ORIG_TARBALL_SOURCE" "$ORIG_TARBALL" ;;
+  esac
+else
+  tar --sort=name --owner=0 --group=0 --numeric-owner --mtime="@$SOURCE_DATE_EPOCH" \
+    -cf "$tmp/orig.tar" -C "$OUTPUT_DIR" --exclude="codex-history-viewer-$VERSION/debian" \
+    "codex-history-viewer-$VERSION"
+  gzip -n -c "$tmp/orig.tar" > "$ORIG_TARBALL"
+fi
 printf '%s\n' "$SOURCE_DIR"

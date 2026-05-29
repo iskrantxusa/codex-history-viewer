@@ -25,4 +25,20 @@ test -x "$source_dir/binaries/arm64/codex-history"
 grep -q "0.1.1-1ppa1~noble1" "$source_dir/debian/changelog"
 grep -q "Node runtime test notices" "$source_dir/runtime-notices/NODE-LICENSE"
 test -f "$source_dir/codex-history.1"
-test -f "$root/out/codex-history-viewer_0.1.1.orig.tar.gz"
+orig="$root/out/codex-history-viewer_0.1.1.orig.tar.gz"
+test -f "$orig"
+
+resolute_source_dir="$(
+  VERSION=0.1.1 SERIES=resolute UBUNTU_VERSION=26.04 PPA_REVISION=2 \
+    ARTIFACT_DIR="$assets" OUTPUT_DIR="$root/resolute" ORIG_TARBALL_SOURCE="$orig" \
+    sh ./scripts/build-ppa-source.sh
+)"
+grep -q "0.1.1-1ppa2~resolute1" "$resolute_source_dir/debian/changelog"
+cmp "$orig" "$root/resolute/codex-history-viewer_0.1.1.orig.tar.gz"
+
+second_source_dir="$(
+  VERSION=0.1.1 SERIES=resolute UBUNTU_VERSION=26.04 ARTIFACT_DIR="$assets" OUTPUT_DIR="$root/second" \
+    sh ./scripts/build-ppa-source.sh
+)"
+test -d "$second_source_dir"
+cmp "$orig" "$root/second/codex-history-viewer_0.1.1.orig.tar.gz"

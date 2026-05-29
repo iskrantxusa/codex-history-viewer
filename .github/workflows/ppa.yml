@@ -9,6 +9,19 @@ on:
         description: Existing GitHub Release tag to publish to the PPA
         required: true
         default: v0.1.1
+      series:
+        description: Ubuntu series to upload
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - noble
+          - resolute
+      ppa_revision:
+        description: PPA revision number, as in 1ppaN
+        required: true
+        default: "1"
 
 permissions:
   contents: read
@@ -31,19 +44,38 @@ jobs:
           - series: resolute
             ubuntu: "26.04"
     steps:
+      - name: Select series
+        id: selected
+        env:
+          SELECTED_SERIES: ${{ inputs.series || 'all' }}
+        run: |
+          if [ "$SELECTED_SERIES" = "all" ] || [ "$SELECTED_SERIES" = "${{ matrix.series }}" ]; then
+            echo "upload=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "upload=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping ${{ matrix.series }} because workflow input selected $SELECTED_SERIES."
+          fi
       - uses: actions/checkout@v4
+        if: steps.selected.outputs.upload == 'true'
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref_name }}
       - name: Resolve release tag
+        if: steps.selected.outputs.upload == 'true'
         env:
           EVENT_TAG: ${{ github.event.release.tag_name }}
           INPUT_TAG: ${{ inputs.tag }}
+          INPUT_PPA_REVISION: ${{ inputs.ppa_revision || '1' }}
         run: |
           TAG="${EVENT_TAG:-$INPUT_TAG}"
           case "$TAG" in v*) ;; *) echo "Release tag must start with v."; exit 1 ;; esac
-          echo "TAG=$TAG" >> "$GITHUB_ENV"
-          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+          case "$INPUT_PPA_REVISION" in ""|*[!0-9]*) echo "ppa_revision must be a positive integer."; exit 1 ;; esac
+          {
+            echo "TAG=$TAG"
+            echo "VERSION=${TAG#v}"
+            echo "PPA_REVISION=$INPUT_PPA_REVISION"
+          } >> "$GITHUB_ENV"
       - name: Download standalone release assets
+        if: steps.selected.outputs.upload == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -55,10 +87,12 @@ jobs:
           cd dist/ppa-assets
           sha256sum -c SHA256SUMS --ignore-missing
       - name: Install Debian upload tools
+        if: steps.selected.outputs.upload == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y debhelper devscripts dput
       - name: Import PPA signing key
+        if: steps.selected.outputs.upload == 'true'
         env:
           PPA_GPG_PRIVATE_KEY: ${{ secrets.PPA_GPG_PRIVATE_KEY }}
         run: |
@@ -69,16 +103,27 @@ jobs:
           printf '%s' "$PPA_GPG_PRIVATE_KEY" | gpg --batch --import
           key_id="$(gpg --batch --with-colons --list-secret-keys | awk -F: '$1 == "sec" { print $5; exit }')"
           test -n "$key_id"
-          echo "GNUPGHOME=$GNUPGHOME" >> "$GITHUB_ENV"
-          echo "PPA_GPG_KEY_ID=$key_id" >> "$GITHUB_ENV"
+          {
+            echo "GNUPGHOME=$GNUPGHOME"
+            echo "PPA_GPG_KEY_ID=$key_id"
+          } >> "$GITHUB_ENV"
       - name: Build signed source upload
+        if: steps.selected.outputs.upload == 'true'
         env:
           SERIES: ${{ matrix.series }}
           UBUNTU_VERSION: ${{ matrix.ubuntu }}
           PPA_GPG_PASSPHRASE: ${{ secrets.PPA_GPG_PASSPHRASE }}
         run: |
           test -n "$PPA_GPG_PASSPHRASE"
-          source_dir="$(VERSION="$VERSION" SERIES="$SERIES" UBUNTU_VERSION="$UBUNTU_VERSION" ./scripts/build-ppa-source.sh)"
+          orig_tarball_source=""
+          if [ "$PPA_REVISION" != "1" ]; then
+            orig_tarball_source="https://launchpad.net/~$PPA_OWNER/+archive/ubuntu/$PPA_NAME/+sourcefiles/codex-history-viewer/${VERSION}-1ppa1~noble1/codex-history-viewer_${VERSION}.orig.tar.gz"
+          fi
+          source_dir="$(
+            VERSION="$VERSION" SERIES="$SERIES" UBUNTU_VERSION="$UBUNTU_VERSION" \
+              PPA_REVISION="$PPA_REVISION" ORIG_TARBALL_SOURCE="$orig_tarball_source" \
+              ./scripts/build-ppa-source.sh
+          )"
           normalized_passphrase="$(printf '%s' "$PPA_GPG_PASSPHRASE" | tr -d '\r\n')"
           encoded_passphrase="$(printf '%s' "$normalized_passphrase" | base64 -w0)"
           umask 077
@@ -92,6 +137,6 @@ jobs:
             cd "$source_dir"
             debuild -S -sa -d -p"$RUNNER_TEMP/gpg-sign" -k"$PPA_GPG_KEY_ID"
           )
-          changes="$(dirname "$source_dir")/codex-history-viewer_${VERSION}-1ppa1~${SERIES}1_source.changes"
+          changes="$(dirname "$source_dir")/codex-history-viewer_${VERSION}-1ppa${PPA_REVISION}~${SERIES}1_source.changes"
           test -f "$changes"
           dput "ppa:$PPA_OWNER/$PPA_NAME" "$changes"

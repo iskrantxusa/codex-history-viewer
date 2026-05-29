@@ -41,6 +41,14 @@ Before the first PPA upload:
 The PPA workflow runs after a GitHub Release is published and can also be
 rerun manually for an existing release tag.
 
+Launchpad keeps one upstream `.orig.tar.gz` per package version in a PPA. Do
+not upload a different `codex-history-viewer_X.Y.Z.orig.tar.gz` for the same
+`X.Y.Z` version. If application artifacts change, publish a new upstream
+version such as `v0.1.2`. If only PPA packaging or workflow behavior changes,
+rerun `Publish PPA` manually with a higher `ppa_revision`, for example
+`ppa_revision=2`. For recovery uploads of an existing version, the workflow
+reuses the already accepted Launchpad `.orig.tar.gz`.
+
 Back up the excluded local release keyring to an already mounted encrypted
 disk by replacing `/mnt/encrypted-backup` with its mount point:
 
